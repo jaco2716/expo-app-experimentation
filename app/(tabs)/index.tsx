@@ -1,15 +1,21 @@
 import Button from "@/components/Button";
 import CircleButton from "@/components/CircleButton";
 import EmojiList from "@/components/EmojiList";
-import EmojiPicker from "@/components/EmojiPicker";
 import EmojiSticker from "@/components/EmojiSticker";
 import IconButton from "@/components/IconButton";
 import ImageViewer from "@/components/ImageViewer";
+import BottomSheet from "@/components/Modal/BottomSheet";
 import domtoimage from "dom-to-image";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import { useEffect, useRef, useState } from "react";
-import { ImageSourcePropType, Platform, StyleSheet, View } from "react-native";
+import {
+  ImageSourcePropType,
+  Platform,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { captureRef } from "react-native-view-shot";
 
@@ -22,6 +28,7 @@ export default function Index() {
   );
   const [showAppOptions, setShowAppOptions] = useState<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [isBigModalVisible, setIsBigModalVisible] = useState<boolean>(false);
   const [pickedEmoji, setPickedEmoji] = useState<
     ImageSourcePropType | undefined
   >(undefined);
@@ -43,7 +50,7 @@ export default function Index() {
   };
 
   const onReset = () => {
-    setShowAppOptions(false);
+    setIsBigModalVisible(true);
   };
 
   const onAddSticker = () => {
@@ -52,6 +59,9 @@ export default function Index() {
 
   const onModalClose = () => {
     setIsModalVisible(false);
+  };
+  const onBigModalClose = () => {
+    setIsBigModalVisible(false);
   };
 
   const onSaveImageAsync = async () => {
@@ -131,9 +141,25 @@ export default function Index() {
           />
         </View>
       )}
-      <EmojiPicker isVisible={isModalVisible} onClose={onModalClose}>
+      {/* <BottomSheet isVisible={isModalVisible} onClose={onModalClose}>
+        <TextInput style={styles.input} />
         <EmojiList onSelect={setPickedEmoji} onCloseModal={onModalClose} />
-      </EmojiPicker>
+      </BottomSheet> */}
+      <BottomSheet
+        isVisible={isBigModalVisible}
+        isScrollable
+        onClose={onBigModalClose}
+      >
+        <TextInput style={styles.input} />
+        <EmojiList onSelect={setPickedEmoji} onCloseModal={onBigModalClose} />
+        <TextInput style={styles.input} />
+        <EmojiList onSelect={setPickedEmoji} onCloseModal={onBigModalClose} />
+        <TextInput style={styles.input} />
+        <EmojiList onSelect={setPickedEmoji} onCloseModal={onBigModalClose} />
+      </BottomSheet>
+      {/* <EmojiPicker isVisible={isModalVisible} onClose={onModalClose}>
+        <EmojiList onSelect={setPickedEmoji} onCloseModal={onModalClose} />
+      </EmojiPicker> */}
     </GestureHandlerRootView>
   );
 }
@@ -143,6 +169,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#25292e",
     alignItems: "center",
+  },
+  input: {
+    width: 200,
+    height: 50,
+    backgroundColor: "blue",
   },
   imageContainer: {
     flex: 1,
