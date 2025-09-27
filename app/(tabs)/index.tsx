@@ -1,6 +1,5 @@
 import Button from "@/components/Button";
 import CircleButton from "@/components/CircleButton";
-import EmojiList from "@/components/EmojiList";
 import EmojiSticker from "@/components/EmojiSticker";
 import IconButton from "@/components/IconButton";
 import ImageViewer from "@/components/ImageViewer";
@@ -22,7 +21,7 @@ import { captureRef } from "react-native-view-shot";
 const PlaceholderImage = require("@/assets/images/background-image.png");
 
 export default function Index() {
-  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
+  // const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
   const [selectedImage, setSelectedImage] = useState<string | undefined>(
     undefined
   );
@@ -98,9 +97,9 @@ export default function Index() {
   };
 
   useEffect(() => {
-    if (!permissionResponse?.granted) {
-      requestPermission();
-    }
+    // if (!permissionResponse?.granted) {
+    // requestPermission().catch((err) => console.log(err));
+    // }
   }, []);
 
   return (
@@ -149,13 +148,15 @@ export default function Index() {
         isVisible={isBigModalVisible}
         isScrollable
         onClose={onBigModalClose}
+        innerStyle={{ alignItems: "center", gap: 20 }}
       >
-        <TextInput style={styles.input} />
-        <EmojiList onSelect={setPickedEmoji} onCloseModal={onBigModalClose} />
-        <TextInput style={styles.input} />
-        <EmojiList onSelect={setPickedEmoji} onCloseModal={onBigModalClose} />
-        <TextInput style={styles.input} />
-        <EmojiList onSelect={setPickedEmoji} onCloseModal={onBigModalClose} />
+        <TextInput style={styles.input} placeholder="Type here..." />
+
+        <TextInput style={styles.input} placeholder="Type here..." />
+        <ImageViewer
+          imgSource={PlaceholderImage}
+          selectedImage={selectedImage}
+        />
       </BottomSheet>
       {/* <EmojiPicker isVisible={isModalVisible} onClose={onModalClose}>
         <EmojiList onSelect={setPickedEmoji} onCloseModal={onModalClose} />
@@ -173,7 +174,8 @@ const styles = StyleSheet.create({
   input: {
     width: 200,
     height: 50,
-    backgroundColor: "blue",
+    backgroundColor: "white",
+    borderRadius: 10,
   },
   imageContainer: {
     flex: 1,

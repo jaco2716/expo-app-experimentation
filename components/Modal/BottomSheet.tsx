@@ -1,19 +1,26 @@
-import { PropsWithChildren, useEffect } from "react";
+import { PropsWithChildren, useEffect, useState } from "react";
 import {
   Dimensions,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Platform,
-  ScrollView,
+  Pressable,
+  StyleProp,
   StyleSheet,
   View,
+  ViewStyle,
 } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+  ScrollView,
+} from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
@@ -22,6 +29,7 @@ type Props = PropsWithChildren<{
   isVisible: boolean;
   isScrollable?: boolean;
   onClose: () => void;
+  innerStyle?: StyleProp<ViewStyle>;
 }>;
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -31,10 +39,15 @@ export default function BottomSheet({
   isScrollable,
   onClose,
   children,
+  innerStyle,
 }: Props) {
-  const { top } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const translateY = useSharedValue(0);
   const keyboardOffset = useSharedValue(0);
+
+  const [kOffset, setKOffset] = useState(0);
+
+  const innerStyles = [styles.innerContainer, innerStyle];
 
   useEffect(() => {
     if (isVisible) translateY.value = withSpring(0);
@@ -44,17 +57,15 @@ export default function BottomSheet({
     const showSub = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       (e) => {
-        console.log(e.endCoordinates.height);
-        keyboardOffset.value = withTiming(e.endCoordinates.height, {
-          duration: 250,
-        });
+        keyboardOffset.value = e.endCoordinates.height;
+        setKOffset(e.endCoordinates.height);
       }
     );
     const hideSub = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
       () => {
-        console.log(0);
-        keyboardOffset.value = withTiming(0, { duration: 250 });
+        keyboardOffset.value = 0;
+        setKOffset(0);
       }
     );
 
@@ -73,7 +84,6 @@ export default function BottomSheet({
     .onEnd((event) => {
       if (event.translationY > 200) {
         // dismiss
-        console.log("dismiss");
         scheduleOnRN(onClose);
         translateY.value = withSpring(SCREEN_HEIGHT);
       } else {
@@ -83,50 +93,88 @@ export default function BottomSheet({
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value - keyboardOffset.value }],
-    maxHeight: SCREEN_HEIGHT - keyboardOffset.value - top,
+    transform: [
+      {
+        translateY: translateY.value,
+      },
+    ],
+    // maxHeight:
+    //   SCREEN_HEIGHT -
+    //   keyboardOffset.value -
+    //   // (keyboardOffset.value ? 0 : bottom) -
+    //   top -
+    //   50,
   }));
+
+  const maxHeight =
+    SCREEN_HEIGHT -
+    50 -
+    kOffset -
+    (Platform.OS === "ios" ? 0 : kOffset ? 0 : bottom);
+
+  console.log(
+    "maxHeight",
+    maxHeight,
+    Platform.OS === "ios" ? 0 : kOffset ? 0 : bottom,
+    top
+  );
 
   const InnerView = isScrollable ? ScrollView : View;
 
   return (
     <Modal animationType="fade" transparent visible={isVisible}>
-      <View style={styles.overlay}>
-        <GestureDetector gesture={pan}>
-          <Animated.View style={[styles.modalContent, animatedStyle]}>
-            <InnerView style={[styles.innerContainer]}>{children}</InnerView>
-          </Animated.View>
-        </GestureDetector>
-      </View>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={styles.container}>
+            <Pressable style={styles.backdrop} onPress={onClose} />
+            <GestureDetector gesture={pan}>
+              <Animated.View
+                style={[styles.modalContent, animatedStyle, { maxHeight }]}
+              >
+                <View style={styles.handle} />
+                {isScrollable ? (
+                  <ScrollView
+                    keyboardShouldPersistTaps="handled"
+                    automaticallyAdjustKeyboardInsets
+                    contentContainerStyle={innerStyles}
+                  >
+                    {children}
+                  </ScrollView>
+                ) : (
+                  <View style={innerStyles}>{children}</View>
+                )}
+              </Animated.View>
+            </GestureDetector>
+          </View>
+        </KeyboardAvoidingView>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
+  container: { flex: 1, justifyContent: "flex-end" },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  handle: {
+    height: 4,
+    width: 25,
+    borderRadius: 4,
+    marginVertical: 8,
+    backgroundColor: "#ccc",
+    alignSelf: "center",
   },
   modalContent: {
     width: "100%",
     backgroundColor: "#25292e",
     borderTopRightRadius: 18,
     borderTopLeftRadius: 18,
+    alignSelf: "flex-end",
   },
-  innerContainer: { paddingVertical: 100 },
-  titleContainer: {
-    height: 50,
-    backgroundColor: "#464C55",
-    borderTopRightRadius: 10,
-    borderTopLeftRadius: 10,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  title: {
-    color: "#fff",
-    fontSize: 16,
-  },
+  innerContainer: { paddingVertical: 25 },
 });
